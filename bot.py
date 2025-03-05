@@ -1,5 +1,7 @@
 import logging
 import logging.config
+import asyncio
+import aiohttp
 
 # Get logging configurations
 logging.config.fileConfig('logging.conf')
@@ -21,6 +23,10 @@ import pytz
 from aiohttp import web
 from plugins import web_server
 
+#KEEP_ALIVE_URL = f"http://localhost:{PORT}"  # Replace with your bot's public URL if needed
+KEEP_ALIVE_URL = "https://shocked-codi-mhbots-b25904d4.koyeb.app/"
+
+
 class Bot(Client):
 
     def __init__(self):
@@ -34,6 +40,17 @@ class Bot(Client):
             sleep_threshold=10,
         )
 
+    async def keep_alive(self):
+        """Periodically pings the bot's own server to keep it awake."""
+        while True:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(KEEP_ALIVE_URL) as resp:
+                        logging.info(f"Keep-alive ping: {resp.status}")
+            except Exception as e:
+                logging.warning(f"Keep-alive failed: {e}")
+            await asyncio.sleep(300)  # Ping every 5 minutes
+
     async def start(self):
         b_users, b_chats = await db.get_banned()
         temp.BANNED_USERS = b_users
@@ -45,14 +62,20 @@ class Bot(Client):
         temp.U_NAME = me.username
         temp.B_NAME = me.first_name
         self.username = '@' + me.username
-        logging.info(f"{me.first_name} with for Pyrogram v{__version__} (Layer {layer}) started on {me.username}.")
+        logging.info(f"{me.first_name} with Pyrogram v{__version__} (Layer {layer}) started on {me.username}.")
         logging.info(LOG_STR)
         logging.info(script.LOGO)
+
         tz = pytz.timezone('Asia/Kolkata')
         today = date.today()
         now = datetime.now(tz)
         time = now.strftime("%H:%M:%S %p")
         await self.send_message(chat_id=LOG_CHANNEL, text=script.RESTART_TXT.format(today, time))
+
+        # Start keep-alive task
+        asyncio.create_task(self.keep_alive())
+
+        # Start web server
         app = web.AppRunner(await web_server())
         await app.setup()
         bind_address = "0.0.0.0"
@@ -68,29 +91,7 @@ class Bot(Client):
         limit: int,
         offset: int = 0,
     ) -> Optional[AsyncGenerator["types.Message", None]]:
-        """Iterate through a chat sequentially.
-        This convenience method does the same as repeatedly calling :meth:`~pyrogram.Client.get_messages` in a loop, thus saving
-        you from the hassle of setting up boilerplate code. It is useful for getting the whole chat messages with a
-        single call.
-        Parameters:
-            chat_id (``int`` | ``str``):
-                Unique identifier (int) or username (str) of the target chat.
-                For your personal cloud (Saved Messages) you can simply use "me" or "self".
-                For a contact that exists in your Telegram address book you can use his phone number (str).
-                
-            limit (``int``):
-                Identifier of the last message to be returned.
-                
-            offset (``int``, *optional*):
-                Identifier of the first message to be returned.
-                Defaults to 0.
-        Returns:
-            ``Generator``: A generator yielding :obj:`~pyrogram.types.Message` objects.
-        Example:
-            .. code-block:: python
-                for message in app.iter_messages("pyrogram", 1, 15000):
-                    print(message.text)
-        """
+        """Iterate through a chat sequentially."""
         current = offset
         while True:
             new_diff = min(200, limit - current)
