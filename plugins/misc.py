@@ -257,13 +257,20 @@ async def imdb_callback(bot: Client, query: CallbackQuery):
 
     imdb_link = imdb.get('url', 'https://www.imdb.com/')
 
+    # Convert release date format to DD/MM/YYYY
+    raw_release_date = imdb.get('release_date', 'N/A')
+    try:
+        formatted_date = datetime.strptime(raw_release_date, "%d %B %Y").strftime("%d/%m/%Y")
+    except ValueError:
+        formatted_date = raw_release_date  # If parsing fails, use original
+
     # Formatting the response
     response_text = (
         f"<b>🎬 Movie:</b> <a href='{imdb_link}'>{imdb.get('title', 'N/A')} [{imdb.get('year', 'N/A')}]</a>\n"
         f"<i>🎭 Also Known As:</i> {imdb.get('aka', imdb.get('title', 'N/A'))}\n"
         f"<b>⭐ Rating:</b> {imdb.get('rating', 'N/A')} / 10\n"
         f"({imdb.get('votes', '0')} based on user ratings) || ⏳ {imdb.get('runtime', 'N/A')}\n"
-        f"<b>📅 Release Date:</b> <a href='{imdb_link}'>{imdb.get('release_date', 'N/A')}</a>\n"
+        f"<b>📅 Release Date:</b> <a href='{imdb_link}'>{formatted_date}</a>\n"
         f"<b>🎭 Genre:</b> " + " ".join([f"#{g.strip().replace(' ', '_')}" for g in imdb.get('genres', '').split(',')]) + "\n"
         f"<b>🗣 Language:</b> " + " ".join([f"#{l.strip().replace(' ', '_')}" for l in imdb.get('languages', '').split(',')])
     )
@@ -271,7 +278,7 @@ async def imdb_callback(bot: Client, query: CallbackQuery):
     # Send message with formatted response
     await query.message.reply(
         response_text,
-        parse_mode="HTML",
+        parse_mode=enums.ParseMode.HTML,  # ✅ FIXED HERE
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔗 View on IMDb", url=imdb_link)]])
     )
 
