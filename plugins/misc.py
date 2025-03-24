@@ -255,6 +255,7 @@ async def imdb_callback(bot: Client, query: CallbackQuery):
     if not imdb:
         return await query.message.edit("❌ No details found.", reply_markup=None)
 
+    imdb_id = imdb.get('id', '')  # IMDb ID (e.g., tt25151410)
     imdb_link = imdb.get('url', 'https://www.imdb.com/')
 
     # Convert release date format to DD/MM/YYYY
@@ -264,21 +265,40 @@ async def imdb_callback(bot: Client, query: CallbackQuery):
     except ValueError:
         formatted_date = raw_release_date  # If parsing fails, use original
 
+    release_info_link = f"https://www.imdb.com/title/{imdb_id}/releaseinfo"
+
+    # Format genres with emojis
+    genres = imdb.get('genres', '').split(',')
+    formatted_genres = []
+    for genre in genres:
+        genre = genre.strip()
+        emoji = GENRE_EMOJIS.get(genre, "🎭")  # Default emoji if not found
+        formatted_genres.append(f"{emoji} #{genre.replace(' ', '_')}")
+    genres_text = " ".join(formatted_genres)
+
+    # Format languages properly
+    languages = imdb.get('languages', '').split(',')
+    languages_text = " ".join([f"#{l.strip().replace(' ', '_')}" for l in languages if l.strip()])
+
+    # Only use ONE "Also Known As" title
+    aka_titles = imdb.get('aka', '').split(',')
+    also_known_as = aka_titles[0] if aka_titles else imdb.get('title', 'N/A')
+
     # Formatting the response
     response_text = (
-        f"<b>🎬 Movie:</b> <a href='{imdb_link}'>{imdb.get('title', 'N/A')} [{imdb.get('year', 'N/A')}]</a>\n"
-        f"<i>🎭 Also Known As:</i> {imdb.get('aka', imdb.get('title', 'N/A'))}\n"
-        f"<b>⭐ Rating:</b> {imdb.get('rating', 'N/A')} / 10\n"
-        f"({imdb.get('votes', '0')} based on user ratings) || ⏳ {imdb.get('runtime', 'N/A')}\n"
-        f"<b>📅 Release Date:</b> <a href='{imdb_link}'>{formatted_date}</a>\n"
-        f"<b>🎭 Genre:</b> " + " ".join([f"#{g.strip().replace(' ', '_')}" for g in imdb.get('genres', '').split(',')]) + "\n"
-        f"<b>🗣 Language:</b> " + " ".join([f"#{l.strip().replace(' ', '_')}" for l in imdb.get('languages', '').split(',')])
+        f"<b>Movie:</b> <a href='{imdb_link}'>{imdb.get('title', 'N/A')} [{imdb.get('year', 'N/A')}]</a>\n"
+        f"<i>Also Known As:</i> {also_known_as}\n"
+        f"<b>Rating:</b> {imdb.get('rating', 'N/A')} / 10\n"
+        f"({imdb.get('votes', '0')} based on user ratings) || {imdb.get('runtime', 'N/A')}\n"
+        f"<b>Release Date:</b> <a href='{release_info_link}'>{formatted_date}</a>\n"
+        f"<b>Genre:</b> {genres_text}\n"
+        f"<b>Language:</b> {languages_text}"
     )
 
     # Send message with formatted response
     await query.message.reply(
         response_text,
-        parse_mode=enums.ParseMode.HTML,  # ✅ FIXED HERE
+        parse_mode=enums.ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔗 View on IMDb", url=imdb_link)]])
     )
 
