@@ -209,6 +209,73 @@ async def imdb_callback(bot: Client, quer_y: CallbackQuery):
     else:
         await quer_y.message.edit(caption, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=False)
     await quer_y.answer()
+
+GENRE_EMOJIS = {
+    "Action": "🔥", "Adventure": "🧭", "Animation": "🎨",
+    "Comedy": "😂", "Crime": "🔫", "Drama": "🎭",
+    "Fantasy": "🧙‍♂️", "Horror": "👻", "Mystery": "🕵️‍♂️",
+    "Romance": "❤️", "Sci-Fi": "🚀", "Thriller": "🔪",
+    "War": "⚔️", "Western": "🤠"
+}
+
+def format_genres(genre_list):
+    """Formats genres with emojis and limits to 2 genres."""
+    formatted = [f"#{g} {GENRE_EMOJIS.get(g, '')}" for g in genre_list[:2]]
+    return " | ".join(formatted) if formatted else "N/A"
+
+@Client.on_message(filters.command(["imdbg"]))
+async def imdb_search(client, message: Message):
+    """Handles the /imdbg command to fetch IMDb movie details."""
+    if ' ' in message.text:
+        k = await message.reply("🔍 Searching IMDb...")
+        _, title = message.text.split(None, 1)
+        movies = await get_poster(title, bulk=True)  # Using your existing function
+        
+        if not movies:
+            return await message.reply("❌ No results found! Try another title.")
+        
+        btn = [
+            [InlineKeyboardButton(text=f"{movie.get('title')} - {movie.get('year')}", callback_data=f"imdbg#{movie.movieID}")]
+            for movie in movies
+        ]
+        await k.edit("🎬 Here are the top results:", reply_markup=InlineKeyboardMarkup(btn))
+    else:
+        await message.reply("⚠️ Please provide a movie/series name. Example: `/imdbg Inception`")
+
+@Client.on_callback_query(filters.regex("^imdbg"))
+async def imdb_callback(bot: Client, query: CallbackQuery):
+    """Handles movie selection from buttons and fetches full details."""
+    _, movie_id = query.data.split("#")
+    imdb = await get_poster(query=movie_id, id=True)  # Using your existing function
+
+    if imdb:
+        genres = format_genres(imdb.get("genres", []))
+        languages = ", ".join([f"#{l.strip()}" for l in imdb.get("languages", ["Unknown"])])
+        rating = imdb.get("rating", "N/A")
+        votes = imdb.get("votes", "N/A")
+        release_date = imdb.get("release_date", "N/A")
+        imdb_link = imdb.get("url", "#")
+
+        caption = (f"<b>🎬 Movie:</b> <a href='{imdb_link}'>{imdb.get('title', 'N/A')} [{imdb.get('year', 'N/A')}]</a>\n"
+                   f"<b>⭐ Rating:</b> {rating} / 10 ({votes} votes)\n"
+                   f"<b>📅 Release Date:</b> {release_date}\n"
+                   f"<b>🎭 Genre:</b> {genres}\n"
+                   f"<b>🗣️ Language:</b> {languages}")
+
+        btn = [[InlineKeyboardButton(text="🔗 View on IMDb", url=imdb_link)]]
+
+        if imdb.get("poster"):
+            try:
+                await query.message.reply_photo(photo=imdb["poster"], caption=caption, reply_markup=InlineKeyboardMarkup(btn))
+            except Exception:
+                await query.message.reply(caption, reply_markup=InlineKeyboardMarkup(btn))
+        else:
+            await query.message.reply(caption, reply_markup=InlineKeyboardMarkup(btn))
+
+    else:
+        await query.message.reply("❌ No details found!")
+
+    await query.answer()
         
 
         
