@@ -267,26 +267,24 @@ async def imdb_callback(bot: Client, query: CallbackQuery):
 
     release_info_link = f"https://www.imdb.com/title/{imdb_id}/releaseinfo"
 
-    # Format genres with emojis
+    # Format genres with only ONE emoji
     genres = imdb.get('genres', '').split(',')
-    formatted_genres = []
-    for genre in genres:
-        genre = genre.strip()
-        emoji = GENRE_EMOJIS.get(genre, "🎭")  # Default emoji if not found
-        formatted_genres.append(f"{emoji} #{genre.replace(' ', '_')}")
-    genres_text = " ".join(formatted_genres)
+    first_genre = genres[0].strip() if genres else "Unknown"
+    emoji = GENRE_EMOJIS.get(first_genre, "🎭")  # Default emoji if not found
+    genres_text = f"{emoji} " + " ".join([f"#{g.strip().replace(' ', '_')}" for g in genres])
 
     # Format languages properly
     languages = imdb.get('languages', '').split(',')
     languages_text = " ".join([f"#{l.strip().replace(' ', '_')}" for l in languages if l.strip()])
 
-    # Only use ONE "Also Known As" title
+    # Only use ONE "Also Known As" title (without the year)
+    main_title = imdb.get('title', 'N/A')
     aka_titles = imdb.get('aka', '').split(',')
-    also_known_as = aka_titles[0] if aka_titles else imdb.get('title', 'N/A')
+    also_known_as = aka_titles[0] if aka_titles else main_title  # Remove year from "Also Known As"
 
     # Formatting the response
     response_text = (
-        f"<b>Movie:</b> <a href='{imdb_link}'>{imdb.get('title', 'N/A')} [{imdb.get('year', 'N/A')}]</a>\n"
+        f"<b>Title:</b> {main_title} ({imdb.get('year', 'N/A')})\n"
         f"<i>Also Known As:</i> {also_known_as}\n"
         f"<b>Rating:</b> {imdb.get('rating', 'N/A')} / 10\n"
         f"({imdb.get('votes', '0')} based on user ratings) || {imdb.get('runtime', 'N/A')}\n"
@@ -303,6 +301,7 @@ async def imdb_callback(bot: Client, query: CallbackQuery):
     )
 
     await query.answer()
+
         
 
         
