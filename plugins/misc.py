@@ -301,7 +301,7 @@ async def imdb_callback(bot: Client, query: CallbackQuery):
         f"<b>Movie:</b> <a href='{imdb_link}'>{imdb.get('title', 'N/A')} [{imdb.get('year', '2020')}]</a>\n"
         f"<i>Also Known As:</i> {imdb.get('title', '')}\n"
         f"<b>Rating ⭐️:</b> {imdb.get('rating', '')} / 10\n"
-        f"<code>({imdb.get('votes', '0')} based on user ratings) || {formatted_runtime}</code>\n"
+        f"<code>({imdb.get('rating','')} based on {imdb.get('votes', '0')} user ratings) || {formatted_runtime} |</code>\n"
         f"<b>Release Date:</b> <a href='{release_info_link}'>{formatted_date}</a>\n"
         f"<b>Genre:</b> {genres_text}\n"
         f"<b>Language:</b> {languages_text}"
