@@ -24,7 +24,7 @@ from aiohttp import web
 from plugins import web_server
 
 #KEEP_ALIVE_URL = f"http://localhost:{PORT}"  # Replace with your bot's public URL if needed
-KEEP_ALIVE_URL = "https://shocked-codi-mhbots-b25904d4.koyeb.app/"
+KEEP_ALIVE_URL = "https://shaggy-davita-mhbfiteruu-8fdc75af.koyeb.app/"
 
 
 class Bot(Client):
