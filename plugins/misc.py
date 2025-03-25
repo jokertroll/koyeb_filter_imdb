@@ -282,12 +282,20 @@ async def imdb_callback(bot: Client, query: CallbackQuery):
     aka_titles = imdb.get('aka', '').split(',')
     also_known_as = aka_titles[0] if aka_titles else main_title  # Remove year from "Also Known As"
 
+    # Convert runtime (if available) to "H h M min" format
+    runtime_minutes = imdb.get('runtime', 'N/A')
+    if runtime_minutes.isdigit():
+        hours, minutes = divmod(int(runtime_minutes), 60)
+        formatted_runtime = f"{hours}h {minutes}min" if hours else f"{minutes}min"
+    else:
+        formatted_runtime = runtime_minutes  # If runtime is not a digit, use original
+
     # Formatting the response
     response_text = (
         f"<b>Movie:</b> <a href='{imdb_link}'>{imdb.get('title', 'N/A')} [{imdb.get('year', '2020')}]</a>\n"
-        f"<i>Also Known As:</i> {imdb.get('title', '')}\n"
-        f"<b>Rating:</b> {imdb.get('rating', '')} / 10\n"
-        f"({imdb.get('votes', '0')} based on user ratings) || {imdb.get('runtime', 'N/A')}\n"
+        f"<i>Also Known As:</i> {imdb.get('title','')}\n"
+        f"<b>Rating ⭐️:</b> {imdb.get('rating', 'N/A')} / 10\n"
+        f"<code>({imdb.get('votes', '0')} based on user ratings) || {formatted_runtime} |</code>\n"
         f"<b>Release Date:</b> <a href='{release_info_link}'>{formatted_date}</a>\n"
         f"<b>Genre:</b> {genres_text}\n"
         f"<b>Language:</b> {languages_text}"
@@ -301,7 +309,3 @@ async def imdb_callback(bot: Client, query: CallbackQuery):
     )
 
     await query.answer()
-
-        
-
-        
